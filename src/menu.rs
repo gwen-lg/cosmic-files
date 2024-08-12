@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use cosmic::{
-    iced::{Alignment, Background, Border, Length},
+    iced::{keyboard::Modifiers, Alignment, Background, Border, Length},
     theme,
     widget::{
         self, button, column, container, divider, horizontal_space,
@@ -51,6 +51,7 @@ fn menu_button_optional(
 pub fn context_menu<'a>(
     tab: &Tab,
     key_binds: &HashMap<KeyBind, Action>,
+    modifiers: &Modifiers,
 ) -> Element<'a, tab::Message> {
     let find_key = |action: &Action| -> String {
         for (key_bind, key_action) in key_binds.iter() {
@@ -212,7 +213,13 @@ pub fn context_menu<'a>(
                     children.push(menu_item(fl!("add-to-sidebar"), Action::AddToSidebar).into());
                 }
                 children.push(divider::horizontal::light().into());
-                children.push(menu_item(fl!("move-to-trash"), Action::Delete).into());
+                if modifiers.shift() && !modifiers.control() {
+                    children.push(
+                        menu_item(fl!("delete-permanently"), Action::PermanentlyDelete).into(),
+                    );
+                } else {
+                    children.push(menu_item(fl!("move-to-trash"), Action::Delete).into());
+                }
             } else {
                 //TODO: need better designs for menu with no selection
                 //TODO: have things like properties but they apply to the folder?
