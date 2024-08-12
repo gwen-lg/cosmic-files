@@ -127,6 +127,7 @@ pub enum Action {
     OpenTerminal,
     OpenWith,
     Paste,
+    PermanentlyDelete,
     Preview,
     Rename,
     RestoreFromTrash,
@@ -193,6 +194,7 @@ impl Action {
             Action::OpenTerminal => Message::OpenTerminal(entity_opt),
             Action::OpenWith => Message::OpenWithDialog(entity_opt),
             Action::Paste => Message::Paste(entity_opt),
+            Action::PermanentlyDelete => Message::PermanentlyDelete(entity_opt),
             Action::Preview => Message::Preview(entity_opt),
             Action::Rename => Message::Rename(entity_opt),
             Action::RestoreFromTrash => Message::RestoreFromTrash(entity_opt),
@@ -331,6 +333,7 @@ pub enum Message {
     PendingError(u64, OperationError),
     PendingPause(u64, bool),
     PendingPauseAll(bool),
+    PermanentlyDelete(Option<Entity>),
     Preview(Option<Entity>),
     RescanTrash,
     Rename(Option<Entity>),
@@ -462,6 +465,9 @@ pub enum DialogPage {
         mime: mime_guess::Mime,
         selected: usize,
         store_opt: Option<mime_app::MimeApp>,
+    },
+    PermanentlyDelete {
+        paths: Vec<PathBuf>,
     },
     RenameItem {
         from: PathBuf,
@@ -2305,6 +2311,9 @@ impl Application for App {
                                 }
                             }
                         }
+                        DialogPage::PermanentlyDelete { paths } => {
+                            self.operation(Operation::PermanentlyDelete { paths });
+                        }
                         DialogPage::RenameItem {
                             from, parent, name, ..
                         } => {
@@ -2920,6 +2929,13 @@ impl Application for App {
                     } else {
                         controller.unpause();
                     }
+                }
+            }
+            Message::PermanentlyDelete(entity_opt) => {
+                let paths = self.selected_paths(entity_opt);
+                if !paths.is_empty() {
+                    self.dialog_pages
+                        .push_back(DialogPage::PermanentlyDelete { paths });
                 }
             }
             Message::Preview(entity_opt) => {
@@ -4399,6 +4415,29 @@ impl Application for App {
                 }
 
                 dialog
+            }
+            DialogPage::PermanentlyDelete { paths } => {
+                let target = if paths.len() == 1 {
+                    format!(
+                        "»{}«",
+                        paths[0]
+                            .file_name()
+                            .map(std::ffi::OsStr::to_string_lossy)
+                            .unwrap_or_else(|| paths[0].to_string_lossy())
+                    )
+                } else {
+                    fl!("selected-items", items = paths.len())
+                };
+                widget::dialog()
+                    .title(fl!("permanently-delete-question", target = target))
+                    .primary_action(
+                        widget::button::destructive(fl!("delete"))
+                            .on_press(Message::DialogComplete),
+                    )
+                    .secondary_action(
+                        widget::button::standard(fl!("cancel")).on_press(Message::DialogCancel),
+                    )
+                    .control(widget::text(fl!("permanently-delete-warning")))
             }
             DialogPage::RenameItem {
                 from,

@@ -79,6 +79,15 @@ save-file = Save file
 open-with-title = How do you want to open "{$name}"?
 browse-store = Browse {$store}
 
+## Permanently delete Dialog
+selected-items = {$items} selected {$items ->
+        [one] item
+        *[other] items
+    }
+permanently-delete-question = Permanently delete {$target}?
+delete = Delete
+permanently-delete-warning = Permanently deleted items can not be restored
+
 ## Rename Dialog
 rename-file = Rename file
 rename-folder = Rename folder
@@ -219,6 +228,14 @@ moved = Moved {$items} {$items ->
         [one] item
         *[other] items
     } from "{$from}" to "{$to}"
+permanently-deleting = Permanently deleting "{$items}" "{$items ->
+        [one] item
+        *[other] items
+    }"
+permanently-deleted = Permanently deleted "{$items}" "{$items ->
+        [one] item
+        *[other] items
+    }"
 renaming = Renaming "{$from}" to "{$to}"
 renamed = Renamed "{$from}" to "{$to}"
 restoring = Restoring {$items} {$items ->
