@@ -264,6 +264,9 @@ calculating = Calculating...
 
 ## Settings
 settings = Settings
+settings-optional-context-menu-actions = Optional Context Menu Actions
+settings-optional-context-menu-actions-description = Show more actions in the menus. Keyboard shortcuts can be used even if the actions are not shown.
+settings-show-delete-permanently = Permanently delete
 
 ### Appearance
 appearance = Appearance

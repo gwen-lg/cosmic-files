@@ -16,7 +16,7 @@ use std::collections::HashMap;
 
 use crate::{
     app::{Action, Message},
-    config::Config,
+    config::{Config, TabConfig},
     fl,
     tab::{self, HeadingOptions, Location, LocationMenuAction, Tab},
 };
@@ -66,6 +66,11 @@ pub fn context_menu<'a>(
         menu_button!(text::body(label), horizontal_space(), text::body(key))
             .on_press(tab::Message::ContextAction(action))
     };
+
+    let TabConfig {
+        show_delete_permanently,
+        ..
+    } = tab.config;
 
     let (sort_name, sort_direction, _) = tab.sort_options();
     let sort_item = |label, variant| {
@@ -212,8 +217,11 @@ pub fn context_menu<'a>(
                 }
                 children.push(divider::horizontal::light().into());
                 children.push(menu_item(fl!("move-to-trash"), Action::Delete).into());
-                children
-                    .push(menu_item(fl!("permanently-delete"), Action::PermanentlyDelete).into());
+                if show_delete_permanently {
+                    children.push(
+                        menu_item(fl!("permanently-delete"), Action::PermanentlyDelete).into(),
+                    );
+                }
             } else {
                 //TODO: need better designs for menu with no selection
                 //TODO: have things like properties but they apply to the folder?

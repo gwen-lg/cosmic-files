@@ -1601,6 +1601,25 @@ impl App {
                     Message::SetTypeToSearch,
                 ))
                 .into(),
+            widget::settings::section()
+                .title(fl!("settings-optional-context-menu-actions"))
+                .add(widget::text(fl!(
+                    "settings-optional-context-menu-actions-description"
+                )))
+                .add({
+                    let tab_config = self.config.tab.clone();
+                    widget::settings::item::builder(fl!("settings-show-delete-permanently"))
+                        .toggler(
+                            tab_config.show_delete_permanently,
+                            move |show_delete_permanently| {
+                                Message::TabConfig(TabConfig {
+                                    show_delete_permanently,
+                                    ..tab_config
+                                })
+                            },
+                        )
+                })
+                .into(),
         ])
         .into()
     }

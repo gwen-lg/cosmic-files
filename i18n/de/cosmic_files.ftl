@@ -246,6 +246,7 @@ calculating = Wird berechnet...
 
 ## Einstellungen
 settings = Einstellungen
+settings-show-delete-permanently = Dauerhaft löschen
 
 ### Aussehen
 appearance = Aussehen
