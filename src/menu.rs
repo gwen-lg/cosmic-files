@@ -212,6 +212,8 @@ pub fn context_menu<'a>(
                 }
                 children.push(divider::horizontal::light().into());
                 children.push(menu_item(fl!("move-to-trash"), Action::Delete).into());
+                children
+                    .push(menu_item(fl!("permanently-delete"), Action::PermanentlyDelete).into());
             } else {
                 //TODO: need better designs for menu with no selection
                 //TODO: have things like properties but they apply to the folder?
@@ -311,8 +313,6 @@ pub fn context_menu<'a>(
                 children.push(divider::horizontal::light().into());
                 children
                     .push(menu_item(fl!("restore-from-trash"), Action::RestoreFromTrash).into());
-                children.push(divider::horizontal::light().into());
-                children.push(menu_item(fl!("delete-permanently"), Action::Delete).into());
             } else {
                 // TODO: Nested menu
                 children.push(sort_item(fl!("sort-by-name"), HeadingOptions::Name));
