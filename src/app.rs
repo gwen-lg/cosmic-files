@@ -2508,7 +2508,7 @@ impl Application for App {
             }
             Message::NetworkDriveSubmit => {
                 //TODO: know which mounter to use for network drives
-                for (mounter_key, mounter) in MOUNTERS.iter() {
+                if let Some((mounter_key, mounter)) = MOUNTERS.iter().next() {
                     self.network_drive_connecting =
                         Some((*mounter_key, self.network_drive_input.clone()));
                     return mounter
