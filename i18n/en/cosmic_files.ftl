@@ -261,6 +261,7 @@ type-to-search-recursive = Searches the current folder and all sub-folders
 type-to-search-enter-path = Enters the path to the directory or file
 
 # Context menu
+paste-in-folder = Paste in the folder
 add-to-sidebar = Add to sidebar
 compress = Compress
 delete-permanently = Delete permanently

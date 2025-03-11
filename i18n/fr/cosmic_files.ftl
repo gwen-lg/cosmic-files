@@ -201,6 +201,7 @@ dark = Sombre
 light = Clair
 
 # Context menu
+paste-in-folder = Coller dans le dossier
 add-to-sidebar = Ajouter à la barre latérale
 compress = Compresser
 extract-here = Extraire

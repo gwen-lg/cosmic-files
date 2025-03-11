@@ -127,6 +127,7 @@ pub enum Action {
     OpenTerminal,
     OpenWith,
     Paste,
+    PasteInFolder,
     Preview,
     Rename,
     RestoreFromTrash,
@@ -193,6 +194,7 @@ impl Action {
             Action::OpenTerminal => Message::OpenTerminal(entity_opt),
             Action::OpenWith => Message::OpenWithDialog(entity_opt),
             Action::Paste => Message::Paste(entity_opt),
+            Action::PasteInFolder => Message::PasteInFolder(entity_opt),
             Action::Preview => Message::Preview(entity_opt),
             Action::Rename => Message::Rename(entity_opt),
             Action::RestoreFromTrash => Message::RestoreFromTrash(entity_opt),
@@ -323,6 +325,7 @@ pub enum Message {
     #[cfg(all(feature = "desktop", feature = "wayland"))]
     Overlap(OverlapNotifyEvent, window::Id),
     Paste(Option<Entity>),
+    PasteInFolder(Option<Entity>),
     PasteContents(PathBuf, ClipboardPaste),
     PendingCancel(u64),
     PendingCancelAll,
@@ -2784,6 +2787,41 @@ impl Application for App {
                                 None => message::none(),
                             }
                         });
+                    }
+                }
+            }
+
+            Message::PasteInFolder(entity_opt) => {
+                let entity = entity_opt.unwrap_or_else(|| self.tab_model.active());
+                if let Some(tab) = self.tab_model.data_mut::<Tab>(entity) {
+                    if let Some(path) = tab.location.path_opt() {
+                        // Get selected folder
+                        let mut selected_dir = None;
+                        if let Some(items) = tab.items_opt() {
+                            for item in items.iter() {
+                                if item.selected && item.metadata.is_dir() {
+                                    let old = selected_dir.replace(item.name.clone());
+                                    if old.is_some() {
+                                        selected_dir.take();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        if let Some(folder_path) = selected_dir {
+                            let mut dest_path = path.to_path_buf();
+                            dest_path.push(folder_path);
+                            return clipboard::read_data::<ClipboardPaste>().map(
+                                move |contents_opt| match contents_opt {
+                                    Some(contents) => message::app(Message::PasteContents(
+                                        dest_path.clone(),
+                                        contents,
+                                    )),
+                                    None => message::none(),
+                                },
+                            );
+                        }
                     }
                 }
             }

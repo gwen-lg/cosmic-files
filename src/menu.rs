@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use cosmic::{
-    iced::{Alignment, Background, Border, Length},
+    iced::{clipboard, Alignment, Background, Border, Length},
     theme,
     widget::{
         self, button, column, container, divider, horizontal_space,
@@ -16,6 +16,7 @@ use std::collections::HashMap;
 
 use crate::{
     app::{Action, Message},
+    clipboard::ClipboardPaste,
     config::Config,
     fl,
     tab::{self, HeadingOptions, Location, LocationMenuAction, Tab},
@@ -178,6 +179,13 @@ pub fn context_menu<'a>(
                 children.push(menu_item(fl!("rename"), Action::Rename).into());
                 children.push(menu_item(fl!("cut"), Action::Cut).into());
                 children.push(menu_item(fl!("copy"), Action::Copy).into());
+                if selected_dir == 1 && selected == selected_dir {
+                    // TODO: only if something to paste in clipboard ?
+                    // access to the clipboard can be to expensive to used in popup menu creation ?
+                    //let clipboard = clipboard::read_data::<ClipboardPaste>();
+
+                    children.push(menu_item(fl!("paste-in-folder"), Action::PasteInFolder).into());
+                }
 
                 children.push(divider::horizontal::light().into());
                 let supported_archive_types = [
