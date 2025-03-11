@@ -2857,7 +2857,7 @@ impl Application for App {
 
                     self.complete_operations.insert(id, op);
                 }
-                // Close progress notification if all relavent operations are finished
+                // Close progress notification if all relevant operations are finished
                 if !self
                     .pending_operations
                     .iter()
