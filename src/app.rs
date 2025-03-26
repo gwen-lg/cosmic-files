@@ -4844,6 +4844,7 @@ impl Application for App {
         vec![menu::menu_bar(
             self.tab_model.active_data::<Tab>(),
             &self.config,
+            &self.modifiers,
             &self.key_binds,
         )]
     }
