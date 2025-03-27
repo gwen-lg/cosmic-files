@@ -50,14 +50,15 @@ impl MimeIconCache {
 }
 static MIME_ICON_CACHE: Lazy<Mutex<MimeIconCache>> = Lazy::new(|| Mutex::new(MimeIconCache::new()));
 
-pub fn mime_for_path<P: AsRef<Path>>(path: P) -> Mime {
+pub fn mime_for_path<P: AsRef<Path>>(path: P, metadata: Option<std::fs::Metadata>) -> Mime {
     let mime_icon_cache = MIME_ICON_CACHE.lock().unwrap();
     // Try the shared mime info cache first
-    let guess = mime_icon_cache
-        .shared_mime_info
-        .guess_mime_type()
-        .path(&path)
-        .guess();
+    let mut guess_builder = mime_icon_cache.shared_mime_info.guess_mime_type();
+    guess_builder.path(&path);
+    if let Some(metadata) = metadata {
+        guess_builder.metadata(metadata.clone());
+    }
+    let guess = guess_builder.guess();
     if guess.uncertain() {
         // If uncertain, try mime_guess. This could happen on platforms without shared-mime-info
         mime_guess::from_path(&path).first_or_octet_stream()

@@ -497,8 +497,15 @@ pub fn item_from_entry(
                 folder_icon(&path, sizes.list()),
                 folder_icon(&path, sizes.list_condensed()),
             )
+        } else if metadata.is_symlink() {
+            (
+                "inode/symlink".parse().unwrap(),
+                folder_icon_symbolic(&path, sizes.grid()),
+                folder_icon_symbolic(&path, sizes.list()),
+                folder_icon_symbolic(&path, sizes.list_condensed()),
+            )
         } else {
-            let mime = mime_for_path(&path);
+            let mime = mime_for_path(&path, Some(metadata.clone()));
             //TODO: clean this up, implement for trash
             let icon_name_opt = if mime == "application/x-desktop" {
                 let (desktop_name_opt, icon_name_opt) = parse_desktop_file(&path);
@@ -623,7 +630,14 @@ pub fn scan_path(tab_path: &PathBuf, sizes: IconSizes) -> Vec<Item> {
                     hidden_files = parse_hidden_file(&path);
                 }
 
-                let metadata = match fs::metadata(&path) {
+                let metadata_1 = if path.is_symlink() && path.try_exists().is_ok_and(|exist| !exist)
+                {
+                    fs::symlink_metadata(&path)
+                } else {
+                    fs::metadata(&path)
+                };
+
+                let metadata = match metadata_1 {
                     Ok(ok) => ok,
                     Err(err) => {
                         log::warn!("failed to read metadata for entry at {:?}: {}", path, err);
@@ -766,7 +780,7 @@ pub fn scan_trash(sizes: IconSizes) -> Vec<Item> {
                         ),
                         trash::TrashItemSize::Bytes(_) => {
                             //TODO: do not use original path
-                            let mime = mime_for_path(&original_path);
+                            let mime = mime_for_path(&original_path, None);
                             (
                                 mime.clone(),
                                 mime_icon(mime.clone(), sizes.grid()),

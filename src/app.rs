@@ -583,7 +583,7 @@ pub struct App {
 
 impl App {
     fn open_file(&mut self, path: &PathBuf) {
-        let mime = mime_icon::mime_for_path(path);
+        let mime = mime_icon::mime_for_path(path, None);
 
         if mime == "application/x-desktop" {
             // Try opening desktop application
