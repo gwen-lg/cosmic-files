@@ -132,8 +132,7 @@ fn zip_extract<R: io::Read + io::Seek, P: AsRef<Path>>(
         let mut file = match &password {
             None => archive.by_index(i),
             Some(pwd) => archive.by_index_decrypt(i, pwd.as_bytes()),
-        }
-        .map_err(|e| e)?;
+        }?;
         let filepath = file
             .enclosed_name()
             .ok_or(ZipError::InvalidArchive("Invalid file path".into()))?;
@@ -195,8 +194,7 @@ fn zip_extract<R: io::Read + io::Seek, P: AsRef<Path>>(
         let mut file = match &password {
             None => archive.by_index(i),
             Some(pwd) => archive.by_index_decrypt(i, pwd.as_bytes()),
-        }
-        .map_err(|e| e)?;
+        }?;
 
         // create all pending dirs
         while let Some(pending_dir) = pending_directory_creates.pop_front() {
