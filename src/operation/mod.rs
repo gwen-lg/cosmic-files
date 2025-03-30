@@ -1071,6 +1071,8 @@ impl Operation {
                     controller,
                 )
                 .await
+                .map_err(OperationError::from_str)?
+                //.map_err(OperationError::from_str)?
             }
             Self::NewFolder { path } => compio::runtime::spawn(async move {
                 controller.check().await.map_err(OperationError::from_str)?;
