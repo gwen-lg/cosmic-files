@@ -160,11 +160,9 @@ impl<T: AsRef<str>> From<T> for DialogLabel {
             let underline = next_underline;
             next_underline = false;
 
-            if c == '_' {
-                if !underline {
-                    next_underline = true;
-                    continue;
-                }
+            if c == '_' && !underline {
+                next_underline = true;
+                continue;
             }
 
             if underline && key_bind_opt.is_none() {
