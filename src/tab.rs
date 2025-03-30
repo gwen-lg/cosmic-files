@@ -2419,11 +2419,9 @@ impl Tab {
             // Compact consecutive search locations
             {
                 let mut remove = false;
-                if let Some(last_location) = self.history.last() {
-                    if let Location::Search(last_path, ..) = last_location {
-                        if let Location::Search(path, ..) = location {
-                            remove = last_path == path;
-                        }
+                if let Some(Location::Search(last_path, ..)) = self.history.last() {
+                    if let Location::Search(path, ..) = location {
+                        remove = last_path == path;
                     }
                 }
                 if remove {
