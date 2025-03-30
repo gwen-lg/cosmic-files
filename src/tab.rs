@@ -2500,15 +2500,14 @@ impl Tab {
                                                 + last_scroll_offset.y),
                                         });
                                     }
+                                } else if let Some(last_scroll_position) = self.last_scroll_position
+                                {
+                                    self.virtual_cursor_offset = Some(Point {
+                                        x: 0.0,
+                                        y: (pos.y - last_scroll_position.y),
+                                    });
                                 } else {
-                                    if let Some(last_scroll_position) = self.last_scroll_position {
-                                        self.virtual_cursor_offset = Some(Point {
-                                            x: 0.0,
-                                            y: (pos.y - last_scroll_position.y),
-                                        });
-                                    } else {
-                                        self.virtual_cursor_offset = Some(Point { x: 0.0, y: 0.0 });
-                                    }
+                                    self.virtual_cursor_offset = Some(Point { x: 0.0, y: 0.0 });
                                 }
 
                                 commands.push(Command::AutoScroll(None));
