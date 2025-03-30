@@ -7,19 +7,18 @@ use crate::{
     tab,
 };
 use cosmic::iced::futures::{channel::mpsc::Sender, SinkExt};
-use std::collections::VecDeque;
-use std::fmt::Formatter;
 use std::{
     borrow::Cow,
+    collections::VecDeque,
     fs,
     io::{self, Read, Write},
-    path::{Path, PathBuf},
+    path::{Path, PathBuf, StripPrefixError},
     sync::Arc,
 };
+use thiserror::Error;
 use tokio::sync::{mpsc, Mutex as TokioMutex};
 use walkdir::WalkDir;
-use zip::result::ZipError;
-use zip::AesMode::Aes256;
+use zip::{result::ZipError, AesMode::Aes256};
 
 pub use self::controller::{Controller, ControllerState};
 pub mod controller;
@@ -530,32 +529,52 @@ pub enum Operation {
     },
 }
 
-#[derive(Clone, Debug)]
-pub enum OperationErrorType {
+#[derive(Debug, Error)]
+pub enum OperationError {
+    #[error("Error {0}")]
     Generic(String),
+
+    #[error(transparent)]
+    Io(#[from] io::Error),
+
+    #[error(transparent)]
+    Trash(#[from] trash::Error),
+
+    #[error("Failed during Zip manipulation")]
+    Zip(#[from] ZipError),
+
+    #[error("Error during Walkdir")]
+    WalkDir(#[from] walkdir::Error),
+
+    #[error("Error durung StripPrefix")]
+    StripPrefix(#[from] StripPrefixError),
+
+    #[error("Failed to run task")]
+    Task(#[from] tokio::task::JoinError),
+
+    #[error("From Controller : {0}")]
+    Controller(String), //TODO: rework controller errors
+
+    #[error("Password required")]
     PasswordRequired,
 }
-#[derive(Clone, Debug)]
-pub struct OperationError {
-    pub kind: OperationErrorType,
-}
 
-impl OperationError {
-    pub fn from_str<T: ToString>(err: T) -> Self {
-        OperationError {
-            kind: OperationErrorType::Generic(err.to_string()),
-        }
-    }
-}
+// impl OperationError {
+//     pub fn from_str<T: ToString>(err: T) -> Self {
+//         OperationError {
+//             kind: OperationErrorType::Generic(err.to_string()),
+//         }
+//     }
+// }
 
-impl std::fmt::Display for OperationError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match &self.kind {
-            OperationErrorType::Generic(s) => s.fmt(f),
-            OperationErrorType::PasswordRequired => f.write_str("Password required"),
-        }
-    }
-}
+// impl std::fmt::Display for OperationError {
+//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+//         match &self.kind {
+//             OperationErrorType::Generic(s) => s.fmt(f),
+//             OperationErrorType::PasswordRequired => f.write_str("Password required"),
+//         }
+//     }
+// }
 
 impl Operation {
     pub fn pending_text(&self, ratio: f32, state: ControllerState) -> String {
@@ -735,7 +754,7 @@ impl Operation {
                 compio::runtime::spawn_blocking(
                     move || -> Result<OperationSelection, OperationError> {
                         let Some(relative_root) = to.parent() else {
-                            return Err(OperationError::from_str(format!(
+                            return Err(OperationError::Generic(format!(
                                 "path {:?} has no parent directory",
                                 to
                             )));
@@ -751,7 +770,7 @@ impl Operation {
                             if path.is_dir() {
                                 let new_paths_it = WalkDir::new(path).into_iter();
                                 for entry in new_paths_it.skip(1) {
-                                    let entry = entry.map_err(OperationError::from_str)?;
+                                    let entry = entry.map_err(OperationError::WalkDir)?;
                                     paths.push(entry.into_path());
                                 }
                             }
@@ -767,8 +786,7 @@ impl Operation {
                                             flate2::Compression::default(),
                                         )
                                     })
-                                    .map(tar::Builder::new)
-                                    .map_err(OperationError::from_str)?;
+                                    .map(tar::Builder::new)?;
 
                                 let total_paths = paths.len();
                                 for (i, path) in paths.iter().enumerate() {
@@ -780,22 +798,19 @@ impl Operation {
 
                                     if let Some(relative_path) = path
                                         .strip_prefix(relative_root)
-                                        .map_err(OperationError::from_str)?
+                                        .map_err(OperationError::StripPrefix)?
                                         .to_str()
                                     {
-                                        archive
-                                            .append_path_with_name(path, relative_path)
-                                            .map_err(OperationError::from_str)?;
+                                        archive.append_path_with_name(path, relative_path)?;
                                     }
                                 }
 
-                                archive.finish().map_err(OperationError::from_str)?;
+                                archive.finish()?;
                             }
                             ArchiveType::Zip => {
                                 let mut archive = fs::File::create(&to)
                                     .map(io::BufWriter::new)
-                                    .map(zip::ZipWriter::new)
-                                    .map_err(OperationError::from_str)?;
+                                    .map(zip::ZipWriter::new)?;
 
                                 let total_paths = paths.len();
                                 let mut buffer = vec![0; 4 * 1024 * 1024];
@@ -813,17 +828,12 @@ impl Operation {
                                             password.as_deref().unwrap(),
                                         );
                                     }
-                                    if let Some(relative_path) = path
-                                        .strip_prefix(relative_root)
-                                        .map_err(OperationError::from_str)?
-                                        .to_str()
+                                    if let Some(relative_path) =
+                                        path.strip_prefix(relative_root)?.to_str()
                                     {
                                         if path.is_file() {
-                                            let mut file = fs::File::open(path)
-                                                .map_err(OperationError::from_str)?;
-                                            let metadata = file
-                                                .metadata()
-                                                .map_err(OperationError::from_str)?;
+                                            let mut file = fs::File::open(path)?;
+                                            let metadata = file.metadata()?;
                                             let total = metadata.len();
                                             if total >= 4 * 1024 * 1024 * 1024 {
                                                 // The large file option must be enabled for files above 4 GiB
@@ -835,9 +845,7 @@ impl Operation {
                                                 let mode = metadata.mode();
                                                 zip_options = zip_options.unix_permissions(mode);
                                             }
-                                            archive
-                                                .start_file(relative_path, zip_options)
-                                                .map_err(OperationError::from_str)?;
+                                            archive.start_file(relative_path, zip_options)?;
                                             let mut current = 0;
                                             loop {
                                                 futures::executor::block_on(async {
@@ -847,15 +855,11 @@ impl Operation {
                                                         .map_err(OperationError::from_str)
                                                 })?;
 
-                                                let count = file
-                                                    .read(&mut buffer)
-                                                    .map_err(OperationError::from_str)?;
+                                                let count = file.read(&mut buffer)?;
                                                 if count == 0 {
                                                     break;
                                                 }
-                                                archive
-                                                    .write_all(&buffer[..count])
-                                                    .map_err(OperationError::from_str)?;
+                                                archive.write_all(&buffer[..count])?;
                                                 current += count;
 
                                                 let file_progress = current as f32 / total as f32;
@@ -864,14 +868,12 @@ impl Operation {
                                                 controller.set_progress(total_progress);
                                             }
                                         } else {
-                                            archive
-                                                .add_directory(relative_path, zip_options)
-                                                .map_err(OperationError::from_str)?;
+                                            archive.add_directory(relative_path, zip_options)?;
                                         }
                                     }
                                 }
 
-                                archive.finish().map_err(OperationError::from_str)?;
+                                archive.finish()?;
                             }
                         }
 
@@ -922,8 +924,7 @@ impl Operation {
 
                             controller.set_progress(i as f32 / count as f32);
 
-                            trash::os_limited::purge_all([item])
-                                .map_err(OperationError::from_str)?;
+                            trash::os_limited::purge_all([item])?;
                         }
                         Ok(())
                     })
@@ -945,7 +946,7 @@ impl Operation {
                 ))]
                 {
                     compio::runtime::spawn_blocking(move || -> Result<(), OperationError> {
-                        let items = trash::os_limited::list().map_err(OperationError::from_str)?;
+                        let items = trash::os_limited::list()?;
                         let count = items.len();
                         for (i, item) in items.into_iter().enumerate() {
                             futures::executor::block_on(async {
@@ -954,8 +955,7 @@ impl Operation {
 
                             controller.set_progress(i as f32 / count as f32);
 
-                            trash::os_limited::purge_all([item])
-                                .map_err(OperationError::from_str)?;
+                            trash::os_limited::purge_all([item])?;
                         }
                         Ok(())
                     })
@@ -1071,7 +1071,7 @@ impl Operation {
                     controller,
                 )
                 .await
-                .map_err(OperationError::from_str)?
+                //.map_err(OperationError::from_str)?
                 //.map_err(OperationError::from_str)?
             }
             Self::NewFolder { path } => compio::runtime::spawn(async move {
@@ -1120,8 +1120,7 @@ impl Operation {
                         }
                     })
                     .await
-                    .map_err(OperationError::from_str)?
-                    .map_err(OperationError::from_str)?;
+                    .map_err(OperationError::Task)??;
                 }
 
                 Ok(OperationSelection::default())
@@ -1180,11 +1179,11 @@ impl Operation {
                         let current_mode = perms.mode();
                         let new_mode = current_mode | 0o111;
                         perms.set_mode(new_mode);
-                        fs::set_permissions(&path, perms).map_err(OperationError::from_str)?;
+                        fs::set_permissions(&path, perms)?;
                     }
 
                     let mut command = std::process::Command::new(path);
-                    spawn_detached(&mut command).map_err(OperationError::from_str)?;
+                    spawn_detached(&mut command)?;
 
                     Ok(())
                 })

@@ -345,7 +345,7 @@ pub enum Message {
     PendingCancelAll,
     PendingComplete(u64, OperationSelection),
     PendingDismiss,
-    PendingError(u64, OperationError),
+    PendingError(u64, Arc<OperationError>),
     PendingPause(u64, bool),
     PendingPauseAll(bool),
     PermanentlyDelete(Option<Entity>),
@@ -3113,12 +3113,13 @@ impl Application for App {
                 if let Some((op, controller)) = self.pending_operations.remove(&id) {
                     // Only show dialog if not cancelled
                     if !controller.is_cancelled() {
-                        self.dialog_pages.push_back(match err.kind {
-                            OperationErrorType::Generic(_) => DialogPage::FailedOperation(id),
-                            OperationErrorType::PasswordRequired => DialogPage::ExtractPassword {
+                        self.dialog_pages.push_back(match err.as_ref() {
+                            OperationError::Generic(_) => DialogPage::FailedOperation(id),
+                            OperationError::PasswordRequired => DialogPage::ExtractPassword {
                                 id,
                                 password: String::from(""),
                             },
+                            _ => {todo!()}
                         });
                     }
                     // Remove from progress

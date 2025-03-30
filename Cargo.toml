@@ -69,6 +69,7 @@ zip = "2.2.2"
 unix_permissions_ext = "0.1.2"
 uzers = "0.12.1"
 io-uring = { version = "0.7.4", features = ["bindgen"], optional = true }
+thiserror = "2.0.12"
 
 [dependencies.libcosmic]
 git = "https://github.com/pop-os/libcosmic.git"
