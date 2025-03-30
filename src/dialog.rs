@@ -394,6 +394,7 @@ enum Message {
     SearchActivate,
     SearchClear,
     SearchInput(String),
+    #[allow(dead_code)]
     Surface(cosmic::surface::Action),
     #[allow(clippy::enum_variant_names)]
     TabMessage(tab::Message),

@@ -5187,6 +5187,7 @@ impl Application for App {
         struct TimeSubscription;
 
         let mut subscriptions = vec![
+            #[allow(unused_variables)]
             event::listen_with(|event, status, window_id| match event {
                 Event::Keyboard(KeyEvent::KeyPressed {
                     key,
