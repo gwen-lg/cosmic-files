@@ -268,7 +268,7 @@ fn tab_complete(path: &Path) -> Result<Vec<(String, PathBuf)>, Box<dyn Error>> {
             .ok_or_else(|| format!("path has no parent {:?}", path))?
     };
 
-    let child_os = path.strip_prefix(&parent)?;
+    let child_os = path.strip_prefix(parent)?;
     let child = child_os
         .to_str()
         .ok_or_else(|| format!("invalid UTF-8 {:?}", child_os))?;
@@ -279,7 +279,7 @@ fn tab_complete(path: &Path) -> Result<Vec<(String, PathBuf)>, Box<dyn Error>> {
         .build()?;
 
     let mut completions = Vec::new();
-    for entry_res in fs::read_dir(&parent)? {
+    for entry_res in fs::read_dir(parent)? {
         let entry = entry_res?;
         let file_name_os = entry.file_name();
         let Some(file_name) = file_name_os.to_str() else {
