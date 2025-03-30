@@ -273,7 +273,7 @@ fn tab_complete(path: &Path) -> Result<Vec<(String, PathBuf)>, Box<dyn Error>> {
         .to_str()
         .ok_or_else(|| format!("invalid UTF-8 {:?}", child_os))?;
 
-    let pattern = format!("^{}", regex::escape(&child));
+    let pattern = format!("^{}", regex::escape(child));
     let regex = regex::RegexBuilder::new(&pattern)
         .case_insensitive(true)
         .build()?;
@@ -285,7 +285,7 @@ fn tab_complete(path: &Path) -> Result<Vec<(String, PathBuf)>, Box<dyn Error>> {
         let Some(file_name) = file_name_os.to_str() else {
             continue;
         };
-        if regex.is_match(&file_name) {
+        if regex.is_match(file_name) {
             completions.push((file_name.to_string(), entry.path()));
         }
     }
