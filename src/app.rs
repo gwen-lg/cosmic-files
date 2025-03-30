@@ -4284,8 +4284,7 @@ impl Application for App {
                                         archive_type: archive_types[index],
                                         password: password.clone(),
                                     })
-                                })
-                                .into(),
+                                }),
                             ])
                             .align_y(Alignment::Center)
                             .spacing(space_xxs)
